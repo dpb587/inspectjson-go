@@ -104,7 +104,7 @@ func TestFuzz(t *testing.T) {
 
 				var textOffsetErr cursorio.OffsetError
 
-				_, sourceErr := inspectjson.Parse(bytes.NewReader(buf), inspectjson.TokenizerOptions{}.SourceOffsets(true))
+				_, sourceErr := inspectjson.Parse(bytes.NewReader(buf), inspectjson.TokenizerConfig{}.SetSourceOffsets(true))
 				if sourceErr == nil {
 					t.Fatal("offsets error expected, but got nil")
 				} else if !errors.As(sourceErr, &textOffsetErr) {

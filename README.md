@@ -100,19 +100,19 @@ Given an `io.Reader`, parse and return a `Value`. The `Value` interface is imple
 ```go
 value, err := inspectjson.Parse(
   os.Stdin,
-  inspectjson.TokenizerOptions{}.
-    Lax(true).
-    SourceOffsets(true),
+  inspectjson.TokenizerConfig{}.
+    SetLax(true).
+    SetSourceOffsets(true),
 )
 ```
 
 ### Parser Options
 
-Use `ParserOptions` to chain any of the following customizations and use it as an extra argument. The [tokenizer options](#tokenizer-options) may also be used. Snippets in bold are a default behavior.
+Use `ParserConfig` to chain any of the following customizations and use it as an extra argument. The [tokenizer options](#tokenizer-options) may also be used. Snippets in bold are a default behavior.
 
-* `KeepReplacedObjectMembers(bool)`
-  * **`KeepReplacedObjectMembers(false)`** - a previously-encountered member will be dropped (i.e. last member wins).
-  * `KeepReplacedObjectMembers(true)` - replaced members will be moved and appended to the `ReplacedMembers` field.
+* `KeepReplacedObjectMembers`
+  * **`SetKeepReplacedObjectMembers(false)`** - a previously-encountered member will be dropped (i.e. last member wins).
+  * `SetKeepReplacedObjectMembers(true)` - replaced members will be moved and appended to the `ReplacedMembers` field.
 
 ## Tokenizer
 
@@ -121,9 +121,9 @@ Given an `io.Reader`, iterate over each `Token`. The `Token` interface is implem
 ```go
 tokenizer := inspectjson.NewTokenizer(
   os.Stdin,
-  inspectjson.TokenizerOptions{}.
-    Lax(true).
-    SourceOffsets(true),
+  inspectjson.TokenizerConfig{}.
+    SetLax(true).
+    SetSourceOffsets(true),
 )
 
 for {
@@ -147,25 +147,25 @@ The contents of a token will be the decoded string representation for its type (
 
 ### Tokenizer Options
 
-Use `TokenizerOptions` to chain any of the following customizations and use it as an extra argument. Snippets in bold are a default behavior.
+Use `TokenizerConfig` to chain any of the following customizations and use it as an extra argument. Snippets in bold are a default behavior.
 
 * `EmitWhitespace(bool)`
-  * **`EmitWhitespace(false)`** - no whitespace tokens will be returned.
-  * `EmitWhitespace(true)` - whitespace tokens will be returned.
+  * **`SetEmitWhitespace(false)`** - no whitespace tokens will be returned.
+  * `SetEmitWhitespace(true)` - whitespace tokens will be returned.
 * `Lax(bool)`
-  * **`Lax(false)`** - requires adherence to JSON syntax.
-  * `Lax(true)` - allow all of the recoverable syntax errors.
+  * **`SetLax(false)`** - requires adherence to JSON syntax.
+  * `SetLax(true)` - allow all of the recoverable syntax errors.
 * `Multistream(bool)`
-  * **`Multistream(false)`** - once a value has been completed, `EOF` is expected.
-  * `Multistream(true)` - values will continue to be tokenized until `EOF`.
+  * **`SetMultistream(false)`** - once a value has been completed, `EOF` is expected.
+  * `SetMultistream(true)` - values will continue to be tokenized until `EOF`.
 * `SourceOffsets(bool)`
-  * **`SourceOffsets(false)`** - no offset data is included in tokens.
-  * `SourceOffsets(true)` - capture byte and text line+column offsets for each token.
+  * **`SetSourceOffsets(false)`** - no offset data is included in tokens.
+  * `SetSourceOffsets(true)` - capture byte and text line+column offsets for each token.
 * `SourceInitialOffset(TextOffset)` - use a non-zero, initial offset (and enable capture of offset data).
 * `SyntaxBehavior(SyntaxBehavior, bool)` - allow or disallow a specific behavior.
 * `SyntaxRecoveryHook(SyntaxRecoveryHookFunc)`
-  * **`SyntaxRecoveryHook(nil)`** - syntax recovery will be handled silently.
-  * `SyntaxRecoveryHook(f)` - for each recovered syntax occurrence, `f` will be invoked.
+  * **`SetSyntaxRecoveryHook(nil)`** - syntax recovery will be handled silently.
+  * `SetSyntaxRecoveryHook(f)` - for each recovered syntax occurrence, `f` will be invoked.
 
 ### Tokenizer Reader
 

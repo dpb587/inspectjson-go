@@ -12,9 +12,9 @@ import (
 func main() {
 	tokenizer := inspectjson.NewTokenizer(
 		os.Stdin,
-		inspectjson.TokenizerOptions{}.
-			SourceOffsets(true).
-			Lax(true),
+		inspectjson.TokenizerConfig{}.
+			SetSourceOffsets(true).
+			SetLax(true),
 	)
 
 	for {

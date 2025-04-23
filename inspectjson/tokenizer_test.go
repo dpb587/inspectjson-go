@@ -25,10 +25,10 @@ func testLaxBehavior(t *testing.T, tcl ...testCaseLaxBehavior) {
 				NewTokenizerReader(
 					NewTokenizer(
 						strings.NewReader(tc.Input),
-						TokenizerOptions{}.
-							Lax(true).
-							SourceOffsets(true).
-							SyntaxRecoveryHook(func(event SyntaxRecovery) {
+						TokenizerConfig{}.
+							SetLax(true).
+							SetSourceOffsets(true).
+							SetSyntaxRecoveryHook(func(event SyntaxRecovery) {
 								syntaxRecoveryList = append(syntaxRecoveryList, event)
 							}),
 					),

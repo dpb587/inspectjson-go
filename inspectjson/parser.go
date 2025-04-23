@@ -7,7 +7,7 @@ import (
 	"strconv"
 )
 
-func Parse(r io.Reader, opts ...ParserOptionsApplier) (Value, error) {
+func Parse(r io.Reader, opts ...ParserOption) (Value, error) {
 	return newParser(r, false, opts...).parse()
 }
 
@@ -17,14 +17,14 @@ type parser struct {
 	keepReplacedObjectMembers bool
 }
 
-func newParser(r io.Reader, multi bool, opts ...ParserOptionsApplier) *parser {
-	var topts []TokenizerOptionsApplier
-	var popts []ParserOptionsApplier
+func newParser(r io.Reader, multi bool, opts ...ParserOption) *parser {
+	var topts []TokenizerOption
+	var popts []ParserOption
 
 	for _, opt := range opts {
 		if opt == nil {
 			continue
-		} else if topt, ok := opt.(TokenizerOptionsApplier); ok {
+		} else if topt, ok := opt.(TokenizerOption); ok {
 			topts = append(topts, topt)
 		} else {
 			popts = append(popts, opt)
@@ -32,7 +32,7 @@ func newParser(r io.Reader, multi bool, opts ...ParserOptionsApplier) *parser {
 	}
 
 	if multi {
-		topts = append(topts, TokenizerOptions{}.Multistream(true))
+		topts = append(topts, TokenizerConfig{}.SetMultistream(true))
 	}
 
 	p := &parser{

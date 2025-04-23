@@ -13,8 +13,8 @@ func main() {
 		inspectjson.NewTokenizerReader(
 			inspectjson.NewTokenizer(
 				os.Stdin,
-				inspectjson.TokenizerOptions{}.
-					Lax(true),
+				inspectjson.TokenizerConfig{}.
+					SetLax(true),
 			),
 		),
 	)

@@ -2,11 +2,11 @@ package inspectjson
 
 import "github.com/dpb587/cursorio-go/cursorio"
 
-type TokenizerOptionsApplier interface {
+type TokenizerOption interface {
 	applyTokenizer(t *tokenizerOptions)
 }
 
-type TokenizerOptions struct {
+type TokenizerConfig struct {
 	sourceOffsets       *bool
 	sourceInitialOffset *cursorio.TextOffset
 	emitWhitespace      *bool
@@ -15,11 +15,11 @@ type TokenizerOptions struct {
 	multistream         *bool
 }
 
-func (o TokenizerOptions) applyParser(p *parser) {
+func (o TokenizerConfig) applyParser(p *parser) {
 	panic("should not be called directly")
 }
 
-func (o TokenizerOptions) applyTokenizer(t *tokenizerOptions) {
+func (o TokenizerConfig) applyTokenizer(t *tokenizerOptions) {
 	if o.sourceOffsets != nil {
 		t.sourceOffsets = *o.sourceOffsets
 	}
@@ -49,13 +49,13 @@ func (o TokenizerOptions) applyTokenizer(t *tokenizerOptions) {
 	}
 }
 
-func (o TokenizerOptions) EmitWhitespace(enable bool) TokenizerOptions {
+func (o TokenizerConfig) SetEmitWhitespace(enable bool) TokenizerConfig {
 	o.emitWhitespace = &enable
 
 	return o
 }
 
-func (o TokenizerOptions) Lax(enable bool) TokenizerOptions {
+func (o TokenizerConfig) SetLax(enable bool) TokenizerConfig {
 	o.laxBehaviors = map[SyntaxBehavior]bool{
 		LaxIgnoreBlockComment:        enable,
 		LaxIgnoreLineComment:         enable,
@@ -70,7 +70,7 @@ func (o TokenizerOptions) Lax(enable bool) TokenizerOptions {
 	return o
 }
 
-func (o TokenizerOptions) LaxBehavior(behavior SyntaxBehavior, enable bool) TokenizerOptions {
+func (o TokenizerConfig) SetLaxBehavior(behavior SyntaxBehavior, enable bool) TokenizerConfig {
 	if o.laxBehaviors == nil {
 		o.laxBehaviors = map[SyntaxBehavior]bool{}
 	}
@@ -80,25 +80,25 @@ func (o TokenizerOptions) LaxBehavior(behavior SyntaxBehavior, enable bool) Toke
 	return o
 }
 
-func (o TokenizerOptions) SyntaxRecoveryHook(hook SyntaxRecoveryHookFunc) TokenizerOptions {
+func (o TokenizerConfig) SetSyntaxRecoveryHook(hook SyntaxRecoveryHookFunc) TokenizerConfig {
 	o.syntaxRecoveryHook = hook
 
 	return o
 }
 
-func (o TokenizerOptions) Multistream(enable bool) TokenizerOptions {
+func (o TokenizerConfig) SetMultistream(enable bool) TokenizerConfig {
 	o.multistream = &enable
 
 	return o
 }
 
-func (o TokenizerOptions) SourceOffsets(enable bool) TokenizerOptions {
+func (o TokenizerConfig) SetSourceOffsets(enable bool) TokenizerConfig {
 	o.sourceOffsets = &enable
 
 	return o
 }
 
-func (o TokenizerOptions) SourceInitialOffset(offset cursorio.TextOffset) TokenizerOptions {
+func (o TokenizerConfig) SetSourceInitialOffset(offset cursorio.TextOffset) TokenizerConfig {
 	v := true
 
 	o.sourceOffsets = &v

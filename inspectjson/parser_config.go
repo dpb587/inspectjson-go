@@ -1,20 +1,20 @@
 package inspectjson
 
-type ParserOptionsApplier interface {
+type ParserOption interface {
 	applyParser(t *parser)
 }
 
-type ParserOptions struct {
+type ParserConfig struct {
 	keepReplacedObjectMembers *bool
 }
 
-func (p ParserOptions) applyParser(t *parser) {
+func (p ParserConfig) applyParser(t *parser) {
 	if p.keepReplacedObjectMembers != nil {
 		t.keepReplacedObjectMembers = *p.keepReplacedObjectMembers
 	}
 }
 
-func (p ParserOptions) KeepReplacedObjectMembers(enable bool) ParserOptions {
+func (p ParserConfig) SetKeepReplacedObjectMembers(enable bool) ParserConfig {
 	p.keepReplacedObjectMembers = &enable
 
 	return p

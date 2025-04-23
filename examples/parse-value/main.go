@@ -14,9 +14,9 @@ var reTextOffsetTerse = regexp.MustCompile(`(cursorio\.TextOffset\{)\s*(Byte: \d
 func main() {
 	value, err := inspectjson.Parse(
 		os.Stdin,
-		inspectjson.TokenizerOptions{}.
-			SourceOffsets(true).
-			Lax(true),
+		inspectjson.TokenizerConfig{}.
+			SetSourceOffsets(true).
+			SetLax(true),
 	)
 	if err != nil {
 		panic(err)

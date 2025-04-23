@@ -38,7 +38,7 @@ type Tokenizer struct {
 
 type lexFunc func(t *Tokenizer, r0 rune, err error) (lexFunc, error)
 
-func NewTokenizer(r io.Reader, opts ...TokenizerOptionsApplier) *Tokenizer {
+func NewTokenizer(r io.Reader, opts ...TokenizerOption) *Tokenizer {
 	compiledOpts := &tokenizerOptions{}
 
 	for _, opt := range opts {
