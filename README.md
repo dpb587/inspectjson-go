@@ -25,29 +25,29 @@ Some sample use cases and starter snippets can be found in the [`examples` direc
 inspectjson.ObjectValue{
   BeginToken: inspectjson.BeginObjectToken{
     SourceOffsets: &cursorio.TextOffsetRange{
-      From: cursorio.TextOffset{Byte: 0, Line: 0, LineColumn: 0},
-      Until: cursorio.TextOffset{Byte: 1, Line: 0, LineColumn: 1},
+      From: cursorio.TextOffset{Byte: 0, LineColumn: cursorio.TextLineColumn{0, 0}},
+      Until: cursorio.TextOffset{Byte: 1, LineColumn: cursorio.TextLineColumn{0, 1}},
     },
   },
   EndToken: inspectjson.EndObjectToken{
     SourceOffsets: &cursorio.TextOffsetRange{
-      From: cursorio.TextOffset{Byte: 9, Line: 0, LineColumn: 9},
-      Until: cursorio.TextOffset{Byte: 10, Line: 0, LineColumn: 10},
+      From: cursorio.TextOffset{Byte: 9, LineColumn: cursorio.TextLineColumn{0, 9}},
+      Until: cursorio.TextOffset{Byte: 10, LineColumn: cursorio.TextLineColumn{0, 10}},
     },
   },
   Members: map[string]inspectjson.ObjectMember{
     "n": inspectjson.ObjectMember{
       Name: inspectjson.StringValue{
         SourceOffsets: &cursorio.TextOffsetRange{
-          From: cursorio.TextOffset{Byte: 1, Line: 0, LineColumn: 1},
-          Until: cursorio.TextOffset{Byte: 4, Line: 0, LineColumn: 4},
+          From: cursorio.TextOffset{Byte: 1, LineColumn: cursorio.TextLineColumn{0, 1}},
+          Until: cursorio.TextOffset{Byte: 4, LineColumn: cursorio.TextLineColumn{0, 4}},
         },
         Value: "n",
       },
       Value: inspectjson.BooleanValue{
         SourceOffsets: &cursorio.TextOffsetRange{
-          From: cursorio.TextOffset{Byte: 5, Line: 0, LineColumn: 5},
-          Until: cursorio.TextOffset{Byte: 9, Line: 0, LineColumn: 9},
+          From: cursorio.TextOffset{Byte: 5, LineColumn: cursorio.TextLineColumn{0, 5}},
+          Until: cursorio.TextOffset{Byte: 9, LineColumn: cursorio.TextLineColumn{0, 9}},
         },
         Value: true,
       },
@@ -62,11 +62,11 @@ inspectjson.ObjectValue{
 <details><summary><code>examples$ go run ./<strong>tokenize-offsets</strong> <<<'<strong>{"n":true}</strong>'</code></summary>
 
 ```
-0x0:0x1;L1C1:L1C2               begin-object            {
-0x1:0x4;L1C2:L1C5               string                  "n"
-0x4:0x5;L1C5:L1C6               name-separator          :
-0x5:0x9;L1C6:L1C10              true                    true
-0x9:0xa;L1C10:L1C11             end-object              }
+L1C1:L1C2;0x0:0x1           	begin-object      	{
+L1C2:L1C5;0x1:0x4           	string            	"n"
+L1C5:L1C6;0x4:0x5           	name-separator    	:
+L1C6:L1C10;0x5:0x9          	true              	true
+L1C10:L1C11;0x9:0xa         	end-object        	}
 ```
 
 </details>
@@ -74,11 +74,11 @@ inspectjson.ObjectValue{
 <details><summary><code>examples$ go run ./<strong>tokenize-log-lax</strong> <<<'<strong>[01,TRUE,"hello	world",]//test</strong>'</code></summary>
 
 ```
-0x1:0x2;L1C2:L1C3               LaxNumberTrimLeadingZero        "0" -> ""
-0x4:0x8;L1C5:L1C9               LaxLiteralCaseInsensitive       "TRUE" -> "true"
-0xf:0x10;L1C16:L1C17            LaxStringEscapeMissingEscape    "\t" -> "\\t"
-0x16:0x17;L1C23:L1C24           LaxIgnoreExtraComma     "," -> ""
-0x18:0x1e;L1C25:L1C31           LaxIgnoreLineComment    "//test" -> ""
+L1C2:L1C3;0x1:0x2           	LaxNumberTrimLeadingZero	"0" -> ""
+L1C5:L1C9;0x4:0x8           	LaxLiteralCaseInsensitive	"TRUE" -> "true"
+L1C16:L1C17;0xf:0x10        	LaxStringEscapeMissingEscape	"\t" -> "\\t"
+L1C23:L1C24;0x16:0x17       	LaxIgnoreExtraComma	"," -> ""
+L1C25:L1C31;0x18:0x1e       	LaxIgnoreLineComment	"//test" -> ""
 ```
 
 </details>

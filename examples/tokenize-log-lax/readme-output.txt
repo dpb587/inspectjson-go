@@ -1,0 +1,5 @@
+L1C2:L1C3;0x1:0x2           	LaxNumberTrimLeadingZero	"0" -> ""
+L1C5:L1C9;0x4:0x8           	LaxLiteralCaseInsensitive	"TRUE" -> "true"
+L1C16:L1C17;0xf:0x10        	LaxStringEscapeMissingEscape	"\t" -> "\\t"
+L1C23:L1C24;0x16:0x17       	LaxIgnoreExtraComma	"," -> ""
+L1C25:L1C31;0x18:0x1e       	LaxIgnoreLineComment	"//test" -> ""

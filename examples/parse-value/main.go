@@ -9,7 +9,7 @@ import (
 	"github.com/sanity-io/litter"
 )
 
-var reTextOffsetTerse = regexp.MustCompile(`(cursorio\.TextOffset\{)\s*(Byte: \d+,)\s*(Line: \d+,)\s*(LineColumn: \d+),\s*(})`)
+var reTextOffsetTerse = regexp.MustCompile(`(cursorio\.TextOffset\{)\s*(Byte: \d+,)\s*(LineColumn: cursorio.TextLineColumn{)\s*(\d+),\s*(\d+),\s*(\}),\s*(})`)
 
 func main() {
 	value, err := inspectjson.Parse(
@@ -22,5 +22,5 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Fprintf(os.Stdout, "%s\n", reTextOffsetTerse.ReplaceAllString(litter.Sdump(value), "$1$2 $3 $4$5"))
+	fmt.Fprintf(os.Stdout, "%s\n", reTextOffsetTerse.ReplaceAllString(litter.Sdump(value), "$1$2 $3$4, $5$6$7"))
 }
