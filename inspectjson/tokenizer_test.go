@@ -271,7 +271,7 @@ func TestTokenizer_SyntaxRecovery_LaxStringEscapeMissingEscape(t *testing.T) {
 				Behavior: LaxStringEscapeMissingEscape,
 				SourceOffsets: &cursorio.TextOffsetRange{
 					From:  cursorio.TextOffset{Byte: 1, LineColumn: cursorio.TextLineColumn{0, 1}},
-					Until: cursorio.TextOffset{Byte: 1, LineColumn: cursorio.TextLineColumn{0, 1}}, // TODO cursorutil/segmentation behavior
+					Until: cursorio.TextOffset{Byte: 2, LineColumn: cursorio.TextLineColumn{0, 1}},
 				},
 				SourceRunes:      []rune("\r"),
 				ValueStart:       &cursorio.TextOffset{Byte: 0, LineColumn: cursorio.TextLineColumn{0, 0}},

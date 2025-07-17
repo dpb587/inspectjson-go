@@ -1,6 +1,9 @@
 package inspectjson
 
-import "github.com/dpb587/cursorio-go/x/cursorioutil"
+import (
+	"github.com/dpb587/cursorio-go/cursorio"
+	"github.com/dpb587/cursorio-go/x/cursorioutil"
+)
 
 const hexUpper = "0123456789ABCDEF"
 
@@ -49,17 +52,17 @@ func decodeHex(c rune) (rune, bool) {
 	return 0, false
 }
 
-func scanUnicode(t *Tokenizer, uncommitted []rune) (rune, []rune, error) {
+func scanUnicode(t *Tokenizer, uncommitted cursorio.DecodedRuneList) (rune, cursorio.DecodedRuneList, error) {
 	r0, err := t.buf.NextRune()
 	if err != nil {
 		return 0, nil, err
 	}
 
-	r0x, ok := decodeHex(r0)
+	r0x, ok := decodeHex(r0.Rune)
 	if !ok {
 		return 0, nil, t.newOffsetError(cursorioutil.UnexpectedRuneError{
-			Rune: r0,
-		}, uncommitted, []rune{r0})
+			Rune: r0.Rune,
+		}, uncommitted.AsDecodedRunes(), r0.AsDecodedRunes())
 	}
 
 	r1, err := t.buf.NextRune()
@@ -67,11 +70,11 @@ func scanUnicode(t *Tokenizer, uncommitted []rune) (rune, []rune, error) {
 		return 0, nil, err
 	}
 
-	r1x, ok := decodeHex(r1)
+	r1x, ok := decodeHex(r1.Rune)
 	if !ok {
 		return 0, nil, t.newOffsetError(cursorioutil.UnexpectedRuneError{
-			Rune: r1,
-		}, append(uncommitted, r0), []rune{r1})
+			Rune: r1.Rune,
+		}, append(uncommitted, r0).AsDecodedRunes(), r1.AsDecodedRunes())
 	}
 
 	r2, err := t.buf.NextRune()
@@ -79,11 +82,11 @@ func scanUnicode(t *Tokenizer, uncommitted []rune) (rune, []rune, error) {
 		return 0, nil, err
 	}
 
-	r2x, ok := decodeHex(r2)
+	r2x, ok := decodeHex(r2.Rune)
 	if !ok {
 		return 0, nil, t.newOffsetError(cursorioutil.UnexpectedRuneError{
-			Rune: r2,
-		}, append(uncommitted, r0, r1), []rune{r2})
+			Rune: r2.Rune,
+		}, append(uncommitted, r0, r1).AsDecodedRunes(), r2.AsDecodedRunes())
 	}
 
 	r3, err := t.buf.NextRune()
@@ -91,11 +94,11 @@ func scanUnicode(t *Tokenizer, uncommitted []rune) (rune, []rune, error) {
 		return 0, nil, err
 	}
 
-	r3x, ok := decodeHex(r3)
+	r3x, ok := decodeHex(r3.Rune)
 	if !ok {
 		return 0, nil, t.newOffsetError(cursorioutil.UnexpectedRuneError{
-			Rune: r3,
-		}, append(uncommitted, r0, r1, r2), []rune{r3})
+			Rune: r3.Rune,
+		}, append(uncommitted, r0, r1, r2).AsDecodedRunes(), r3.AsDecodedRunes())
 	}
 
 	return rune(r0x<<12 | r1x<<8 | r2x<<4 | r3x),

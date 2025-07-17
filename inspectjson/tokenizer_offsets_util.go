@@ -2,24 +2,17 @@ package inspectjson
 
 import (
 	"github.com/dpb587/cursorio-go/cursorio"
-	"github.com/dpb587/cursorio-go/x/cursorioutil"
 )
 
-func (t *Tokenizer) newOffsetError(err error, readUncomitted, readIgnored []rune) error {
+func (t *Tokenizer) newOffsetError(err error, readUncomitted, readIgnored cursorio.DecodedRunes) error {
 	werr := cursorio.OffsetError{
 		Err: err,
 	}
 
 	if t.doc == nil {
-		o := t.buf.GetByteOffset()
-
-		if len(readIgnored) > 0 {
-			o -= cursorio.ByteOffset(cursorioutil.RunesBytes(readIgnored))
-		}
-
-		werr.Offset = o
+		werr.Offset = t.buf.GetByteOffset() - cursorio.ByteOffset(readIgnored.Size)
 	} else {
-		if len(readUncomitted) > 0 {
+		if readUncomitted.Size > 0 {
 			werr.Offset = *t.uncommittedTextOffset(readUncomitted)
 		} else {
 			werr.Offset = t.doc.GetTextOffset()
@@ -39,47 +32,47 @@ func (t *Tokenizer) getTextOffset() *cursorio.TextOffset {
 	return &v
 }
 
-func (t *Tokenizer) commit(runes []rune) {
+func (t *Tokenizer) commit(runes cursorio.DecodedRunes) {
 	if t.doc == nil {
 		return
 	}
 
-	t.doc.WriteRunes(runes)
+	t.doc.WriteRunes(runes.Runes, runes.Size)
 }
 
-func (t *Tokenizer) commitForTextOffsetRange(runes []rune) *cursorio.TextOffsetRange {
+func (t *Tokenizer) commitForTextOffsetRange(runes cursorio.DecodedRunes) *cursorio.TextOffsetRange {
 	if t.doc == nil {
 		return nil
 	}
 
-	v := t.doc.WriteRunesForOffsetRange(runes)
+	v := t.doc.WriteRunesForOffsetRange(runes.Runes, runes.Size)
 
 	return &v
 }
 
-func (t *Tokenizer) uncommittedTextOffset(runes []rune) *cursorio.TextOffset {
+func (t *Tokenizer) uncommittedTextOffset(runes cursorio.DecodedRunes) *cursorio.TextOffset {
 	if t.doc == nil {
 		return nil
 	}
 
 	clone := t.doc.Clone()
-	v := clone.WriteRunesForOffset(runes)
+	v := clone.WriteRunesForOffset(runes.Runes, runes.Size)
 
 	return &v
 }
 
-func (t *Tokenizer) uncommittedTextOffsetRange(prefixIgnored, runes []rune) *cursorio.TextOffsetRange {
+func (t *Tokenizer) uncommittedTextOffsetRange(prefixIgnored, runes cursorio.DecodedRunes) *cursorio.TextOffsetRange {
 	if t.doc == nil {
 		return nil
 	}
 
 	clone := t.doc.Clone()
 
-	if len(prefixIgnored) > 0 {
-		clone.WriteRunes(prefixIgnored)
+	if prefixIgnored.Size > 0 {
+		clone.WriteRunes(prefixIgnored.Runes, prefixIgnored.Size)
 	}
 
-	v := clone.WriteRunesForOffsetRange(runes)
+	v := clone.WriteRunesForOffsetRange(runes.Runes, runes.Size)
 
 	return &v
 }

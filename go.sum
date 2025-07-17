@@ -1,4 +1,4 @@
 github.com/apparentlymart/go-textseg/v16 v16.0.0 h1:xD7KZ/8d+ED3d+k78g/2weJEIGzDMreyMqntQymTZB0=
 github.com/apparentlymart/go-textseg/v16 v16.0.0/go.mod h1:wCrfQB/AReGqD1ECqVHhhsq7BV2AxUhnirsBLInYHvE=
-github.com/dpb587/cursorio-go v0.0.0-20250415220656-c43e40f866fd h1:syuWYbcolG3GMI0R3iMcbPZSFrEEwR73FwvSWlvxMcY=
-github.com/dpb587/cursorio-go v0.0.0-20250415220656-c43e40f866fd/go.mod h1:YokGb5i31XI0Z+4t8bZxvZecyKY3ddLlih9Rr7eBgW0=
+github.com/dpb587/cursorio-go v0.0.0-20250717044249-e1d8c928b30d h1:UxedKtdKz4vyHhlQtjdOx8ogG+y7uhIViUVXM3jSeVY=
+github.com/dpb587/cursorio-go v0.0.0-20250717044249-e1d8c928b30d/go.mod h1:YokGb5i31XI0Z+4t8bZxvZecyKY3ddLlih9Rr7eBgW0=

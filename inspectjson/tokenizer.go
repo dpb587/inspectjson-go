@@ -36,7 +36,7 @@ type Tokenizer struct {
 	err    error
 }
 
-type lexFunc func(t *Tokenizer, r0 rune, err error) (lexFunc, error)
+type lexFunc func(t *Tokenizer, r0 cursorio.DecodedRune, err error) (lexFunc, error)
 
 func NewTokenizer(r io.Reader, opts ...TokenizerOption) *Tokenizer {
 	compiledOpts := &tokenizerOptions{}
@@ -105,7 +105,7 @@ func (t *Tokenizer) stackShift(fn lexFunc) error {
 }
 
 func (t *Tokenizer) lex(fn lexFunc) (lexFunc, error) {
-	var uncommitted []rune
+	var uncommitted cursorio.DecodedRuneList
 
 	for {
 		r0, err := t.buf.NextRune()
@@ -113,16 +113,18 @@ func (t *Tokenizer) lex(fn lexFunc) (lexFunc, error) {
 			return fn(t, r0, err)
 		}
 
-		switch r0 {
+		switch r0.Rune {
 		case '/':
 			if len(uncommitted) > 0 {
+				uncommittedSquashed := uncommitted.AsDecodedRunes()
+
 				if t.emitWhitespace {
 					t.emit(WhitespaceToken{
-						SourceOffsets: t.commitForTextOffsetRange(uncommitted),
-						Content:       string(uncommitted),
+						SourceOffsets: t.commitForTextOffsetRange(uncommittedSquashed),
+						Content:       uncommittedSquashed.String(),
 					})
 				} else {
-					t.commit(uncommitted)
+					t.commit(uncommittedSquashed)
 				}
 
 				uncommitted = nil
@@ -130,8 +132,8 @@ func (t *Tokenizer) lex(fn lexFunc) (lexFunc, error) {
 
 			if t.laxBehaviors&(LaxIgnoreBlockComment|LaxIgnoreLineComment) == 0 {
 				return nil, t.newOffsetError(cursorioutil.UnexpectedRuneError{
-					Rune: r0,
-				}, nil, []rune{r0})
+					Rune: r0.Rune,
+				}, cursorio.DecodedRunes{}, r0.AsDecodedRunes())
 			}
 
 			uncommitted = append(uncommitted, r0)
@@ -141,12 +143,12 @@ func (t *Tokenizer) lex(fn lexFunc) (lexFunc, error) {
 				return nil, err
 			}
 
-			switch r1 {
+			switch r1.Rune {
 			case '/':
 				if t.laxBehaviors&LaxIgnoreLineComment == 0 {
 					return nil, t.newOffsetError(cursorioutil.UnexpectedRuneError{
-						Rune: r1,
-					}, uncommitted, []rune{r1})
+						Rune: r1.Rune,
+					}, uncommitted.AsDecodedRunes(), r1.AsDecodedRunes())
 				}
 
 				uncommitted = append(uncommitted, r1)
@@ -156,10 +158,12 @@ func (t *Tokenizer) lex(fn lexFunc) (lexFunc, error) {
 					if err != nil {
 						if errors.Is(err, io.EOF) {
 							if t.laxListener != nil {
+								uncommittedSquashed := uncommitted.AsDecodedRunes()
+
 								t.laxListener(SyntaxRecovery{
 									Behavior:      LaxIgnoreLineComment,
-									SourceOffsets: t.commitForTextOffsetRange(uncommitted),
-									SourceRunes:   uncommitted,
+									SourceOffsets: t.commitForTextOffsetRange(uncommittedSquashed),
+									SourceRunes:   uncommittedSquashed.Runes,
 								})
 							}
 						}
@@ -168,7 +172,7 @@ func (t *Tokenizer) lex(fn lexFunc) (lexFunc, error) {
 					}
 
 					// TODO \r\n?
-					if r0 == '\n' {
+					if r0.Rune == '\n' {
 						t.buf.BacktrackRunes(r0)
 
 						goto LINE_DONE
@@ -180,10 +184,12 @@ func (t *Tokenizer) lex(fn lexFunc) (lexFunc, error) {
 			LINE_DONE:
 
 				if t.laxListener != nil {
+					uncommittedSquashed := uncommitted.AsDecodedRunes()
+
 					t.laxListener(SyntaxRecovery{
 						Behavior:      LaxIgnoreLineComment,
-						SourceOffsets: t.commitForTextOffsetRange(uncommitted),
-						SourceRunes:   uncommitted,
+						SourceOffsets: t.commitForTextOffsetRange(uncommittedSquashed),
+						SourceRunes:   uncommittedSquashed.Runes,
 					})
 				}
 
@@ -191,8 +197,8 @@ func (t *Tokenizer) lex(fn lexFunc) (lexFunc, error) {
 			case '*':
 				if t.laxBehaviors&LaxIgnoreBlockComment == 0 {
 					return nil, t.newOffsetError(cursorioutil.UnexpectedRuneError{
-						Rune: r1,
-					}, uncommitted, []rune{r1})
+						Rune: r1.Rune,
+					}, uncommitted.AsDecodedRunes(), r1.AsDecodedRunes())
 				}
 
 				uncommitted = append(uncommitted, r1)
@@ -202,10 +208,12 @@ func (t *Tokenizer) lex(fn lexFunc) (lexFunc, error) {
 					if err != nil {
 						if errors.Is(err, io.EOF) {
 							if t.laxListener != nil {
+								uncommittedSquashed := uncommitted.AsDecodedRunes()
+
 								t.laxListener(SyntaxRecovery{
 									Behavior:      LaxIgnoreBlockComment,
-									SourceOffsets: t.commitForTextOffsetRange(uncommitted),
-									SourceRunes:   uncommitted,
+									SourceOffsets: t.commitForTextOffsetRange(uncommittedSquashed),
+									SourceRunes:   uncommittedSquashed.Runes,
 								})
 							}
 						}
@@ -215,15 +223,17 @@ func (t *Tokenizer) lex(fn lexFunc) (lexFunc, error) {
 
 					uncommitted = append(uncommitted, r0)
 
-					if r0 == '*' {
+					if r0.Rune == '*' {
 						r1, err := t.buf.NextRune()
 						if err != nil {
 							if errors.Is(err, io.EOF) {
 								if t.laxListener != nil {
+									uncommittedSquashed := uncommitted.AsDecodedRunes()
+
 									t.laxListener(SyntaxRecovery{
 										Behavior:      LaxIgnoreBlockComment,
-										SourceOffsets: t.commitForTextOffsetRange(uncommitted),
-										SourceRunes:   uncommitted,
+										SourceOffsets: t.commitForTextOffsetRange(uncommittedSquashed),
+										SourceRunes:   uncommittedSquashed.Runes,
 									})
 								}
 							}
@@ -233,7 +243,7 @@ func (t *Tokenizer) lex(fn lexFunc) (lexFunc, error) {
 
 						uncommitted = append(uncommitted, r1)
 
-						if r1 == '/' {
+						if r1.Rune == '/' {
 							goto BLOCK_DONE
 						}
 					}
@@ -242,30 +252,34 @@ func (t *Tokenizer) lex(fn lexFunc) (lexFunc, error) {
 			BLOCK_DONE:
 
 				if t.laxListener != nil {
+					uncommittedSquashed := uncommitted.AsDecodedRunes()
+
 					t.laxListener(SyntaxRecovery{
 						Behavior:      LaxIgnoreBlockComment,
-						SourceOffsets: t.commitForTextOffsetRange(uncommitted),
-						SourceRunes:   uncommitted,
+						SourceOffsets: t.commitForTextOffsetRange(uncommittedSquashed),
+						SourceRunes:   uncommittedSquashed.Runes,
 					})
 				}
 
 				return fn, nil
 			default:
 				return nil, t.newOffsetError(cursorioutil.UnexpectedRuneError{
-					Rune: uncommitted[0],
-				}, uncommitted[0:1], []rune{r1})
+					Rune: uncommitted[0].Rune,
+				}, cursorio.NewDecodedRunes(uncommitted[0:1]...), r1.AsDecodedRunes())
 			}
 		case 0x20, 0x09, 0x0A, 0x0D:
 			uncommitted = append(uncommitted, r0)
 		default:
+			uncommittedSquashed := uncommitted.AsDecodedRunes()
+
 			if len(uncommitted) > 0 {
 				if t.emitWhitespace {
 					t.emit(WhitespaceToken{
-						SourceOffsets: t.commitForTextOffsetRange(uncommitted),
-						Content:       string(uncommitted),
+						SourceOffsets: t.commitForTextOffsetRange(uncommittedSquashed),
+						Content:       uncommittedSquashed.String(),
 					})
 				} else {
-					t.commit(uncommitted)
+					t.commit(uncommittedSquashed)
 				}
 			}
 
@@ -278,10 +292,10 @@ func (r *Tokenizer) emit(tokens ...Token) {
 	r.tokens = append(r.tokens, tokens...)
 }
 
-func (t *Tokenizer) emitString(r0 rune) error {
+func (t *Tokenizer) emitString(r0 cursorio.DecodedRune) error {
 	// assert(r0 == '"')
 
-	var uncommitted = []rune{r0}
+	var uncommitted = cursorio.DecodedRuneList{r0}
 	var decoded []rune
 
 	for {
@@ -294,7 +308,7 @@ func (t *Tokenizer) emitString(r0 rune) error {
 			return err
 		}
 
-		switch r0 {
+		switch r0.Rune {
 		case '\\':
 			r1, err := t.buf.NextRune()
 			if err != nil {
@@ -305,9 +319,9 @@ func (t *Tokenizer) emitString(r0 rune) error {
 				return err
 			}
 
-			switch r1 {
+			switch r1.Rune {
 			case '"', '\\', '/':
-				decoded = append(decoded, r1)
+				decoded = append(decoded, r1.Rune)
 				uncommitted = append(uncommitted, r0, r1)
 			case 'b':
 				decoded = append(decoded, '\b')
@@ -346,12 +360,12 @@ func (t *Tokenizer) emitString(r0 rune) error {
 						}
 
 						return err
-					} else if r2 != '\\' {
+					} else if r2.Rune != '\\' {
 						if t.laxListener != nil {
 							t.laxListener(SyntaxRecovery{
 								Behavior:         WarnStringUnicodeReplacementChar,
-								SourceOffsets:    t.uncommittedTextOffsetRange(uncommitted[0:len(uncommitted)-6], uncommitted[len(uncommitted)-6:]),
-								SourceRunes:      uncommitted[len(uncommitted)-6:],
+								SourceOffsets:    t.uncommittedTextOffsetRange(uncommitted[0:len(uncommitted)-6].AsDecodedRunes(), uncommitted[len(uncommitted)-6:].AsDecodedRunes()),
+								SourceRunes:      uncommitted[len(uncommitted)-6:].AsDecodedRunes().Runes,
 								ValueStart:       t.getTextOffset(),
 								ReplacementRunes: []rune{'\\', 'u', 'F', 'F', 'F', 'D'},
 							})
@@ -367,12 +381,12 @@ func (t *Tokenizer) emitString(r0 rune) error {
 							}
 
 							return err
-						} else if r3 != 'u' {
+						} else if r3.Rune != 'u' {
 							if t.laxListener != nil {
 								t.laxListener(SyntaxRecovery{
 									Behavior:         WarnStringUnicodeReplacementChar,
-									SourceOffsets:    t.uncommittedTextOffsetRange(uncommitted[0:len(uncommitted)-6], uncommitted[len(uncommitted)-6:]),
-									SourceRunes:      uncommitted[len(uncommitted)-6:],
+									SourceOffsets:    t.uncommittedTextOffsetRange(uncommitted[0:len(uncommitted)-6].AsDecodedRunes(), uncommitted[len(uncommitted)-6:].AsDecodedRunes()),
+									SourceRunes:      uncommitted[len(uncommitted)-6:].AsDecodedRunes().Runes,
 									ValueStart:       t.getTextOffset(),
 									ReplacementRunes: []rune{'\\', 'u', 'F', 'F', 'F', 'D'},
 								})
@@ -398,8 +412,8 @@ func (t *Tokenizer) emitString(r0 rune) error {
 							if decodedPair == unicode.ReplacementChar && t.laxListener != nil {
 								t.laxListener(SyntaxRecovery{
 									Behavior:         WarnStringUnicodeReplacementChar,
-									SourceOffsets:    t.uncommittedTextOffsetRange(uncommitted[0:len(uncommitted)-12], uncommitted[len(uncommitted)-12:]),
-									SourceRunes:      uncommitted[len(uncommitted)-12:],
+									SourceOffsets:    t.uncommittedTextOffsetRange(uncommitted[0:len(uncommitted)-12].AsDecodedRunes(), uncommitted[len(uncommitted)-12:].AsDecodedRunes()),
+									SourceRunes:      uncommitted[len(uncommitted)-12:].AsDecodedRunes().Runes,
 									ValueStart:       t.getTextOffset(),
 									ReplacementRunes: []rune{'\\', 'u', 'F', 'F', 'F', 'D'},
 								})
@@ -412,39 +426,41 @@ func (t *Tokenizer) emitString(r0 rune) error {
 
 				decoded = append(decoded, decodedRune)
 			default:
+				rawRunes := cursorio.NewDecodedRunes(r0, r1)
+
 				if t.laxBehaviors&LaxStringEscapeInvalidEscape == 0 {
 					return t.newOffsetError(cursorioutil.UnexpectedRuneError{
-						Rune: r1,
-					}, uncommitted, []rune{r0, r1})
+						Rune: r1.Rune,
+					}, uncommitted.AsDecodedRunes(), rawRunes)
 				} else if t.laxListener != nil {
 					t.laxListener(SyntaxRecovery{
 						Behavior:         LaxStringEscapeInvalidEscape,
 						ValueStart:       t.getTextOffset(),
-						SourceOffsets:    t.uncommittedTextOffsetRange(uncommitted, []rune{r0, r1}),
-						SourceRunes:      []rune{r0, r1},
-						ReplacementRunes: []rune{r0, r1},
+						SourceOffsets:    t.uncommittedTextOffsetRange(uncommitted.AsDecodedRunes(), rawRunes),
+						SourceRunes:      rawRunes.Runes,
+						ReplacementRunes: rawRunes.Runes,
 					})
 				}
 
-				decoded = append(decoded, r0, r1)
+				decoded = append(decoded, rawRunes.Runes...)
 				uncommitted = append(uncommitted, r0, r1)
 			}
 		case '\b', '\f', '\n', '\r', '\t':
 			if t.laxBehaviors&LaxStringEscapeMissingEscape == 0 {
 				return t.newOffsetError(cursorioutil.UnexpectedRuneError{
-					Rune: r0,
-				}, uncommitted, []rune{r0})
+					Rune: r0.Rune,
+				}, uncommitted.AsDecodedRunes(), r0.AsDecodedRunes())
 			}
 
 			if t.laxListener != nil {
 				lt := SyntaxRecovery{
 					Behavior:      LaxStringEscapeMissingEscape,
-					SourceOffsets: t.uncommittedTextOffsetRange(uncommitted, []rune{r0}),
-					SourceRunes:   []rune{r0},
+					SourceOffsets: t.uncommittedTextOffsetRange(uncommitted.AsDecodedRunes(), r0.AsDecodedRunes()),
+					SourceRunes:   []rune{r0.Rune},
 					ValueStart:    t.getTextOffset(),
 				}
 
-				switch r0 {
+				switch r0.Rune {
 				case '\b':
 					lt.ReplacementRunes = []rune("\\b")
 				case '\f':
@@ -461,27 +477,27 @@ func (t *Tokenizer) emitString(r0 rune) error {
 			}
 
 			uncommitted = append(uncommitted, r0)
-			decoded = append(decoded, r0)
+			decoded = append(decoded, r0.Rune)
 		case '"':
 			uncommitted = append(uncommitted, r0)
 
 			t.emit(StringToken{
-				SourceOffsets: t.commitForTextOffsetRange(uncommitted),
+				SourceOffsets: t.commitForTextOffsetRange(uncommitted.AsDecodedRunes()),
 				Content:       string(decoded),
 			})
 
 			return nil
 		default:
-			if r0 < 0x1F || (r0 >= 0x80 && r0 <= 0x9F) {
+			if r0.Rune < 0x1F || (r0.Rune >= 0x80 && r0.Rune <= 0x9F) {
 				if t.laxBehaviors&LaxStringEscapeMissingEscape == 0 {
 					return t.newOffsetError(cursorioutil.UnexpectedRuneError{
-						Rune: r0,
-					}, nil, []rune{r0})
+						Rune: r0.Rune,
+					}, uncommitted.AsDecodedRunes(), r0.AsDecodedRunes())
 				} else if t.laxListener != nil {
 					t.laxListener(SyntaxRecovery{
 						Behavior:         LaxStringEscapeMissingEscape,
-						SourceOffsets:    t.uncommittedTextOffsetRange(uncommitted, []rune{r0}),
-						SourceRunes:      []rune(string(r0)),
+						SourceOffsets:    t.uncommittedTextOffsetRange(uncommitted.AsDecodedRunes(), r0.AsDecodedRunes()),
+						SourceRunes:      []rune{r0.Rune},
 						ValueStart:       t.getTextOffset(),
 						ReplacementRunes: []rune(fmt.Sprintf("\\u%04x", r0)),
 					})
@@ -489,7 +505,7 @@ func (t *Tokenizer) emitString(r0 rune) error {
 			}
 
 			uncommitted = append(uncommitted, r0)
-			decoded = append(decoded, r0)
+			decoded = append(decoded, r0.Rune)
 		}
 	}
 }
