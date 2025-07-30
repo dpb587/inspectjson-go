@@ -334,20 +334,10 @@ func tokenizer_lexValue(t *Tokenizer, r0 cursorio.DecodedRune, err error) (lexFu
 	case '-', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
 		var derr error
 		var uncommitted = cursorio.DecodedRuneList{r0}
-		var uncommittedTrailingZero bool
-		var hadPrefixedZero bool
 
-		switch r0.Rune {
-		case '-':
-			goto NUMBER_INT_INIT
-		case '0':
-			uncommittedTrailingZero = true
-			fallthrough
-		default:
+		if r0.Rune != '-' {
 			goto NUMBER_INT_CONT
 		}
-
-	NUMBER_INT_INIT:
 
 		{
 			r0, err := t.buf.NextRune()
@@ -360,9 +350,7 @@ func tokenizer_lexValue(t *Tokenizer, r0 cursorio.DecodedRune, err error) (lexFu
 			}
 
 			switch r0.Rune {
-			case '0':
-				uncommittedTrailingZero = true
-			case '1', '2', '3', '4', '5', '6', '7', '8', '9':
+			case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
 				// good
 			default:
 				return nil, t.newOffsetError(cursorioutil.UnexpectedRuneError{
@@ -389,24 +377,6 @@ func tokenizer_lexValue(t *Tokenizer, r0 cursorio.DecodedRune, err error) (lexFu
 
 			switch r0.Rune {
 			case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
-				if uncommittedTrailingZero {
-					if t.laxBehaviors&LaxNumberTrimLeadingZero == 0 {
-						return nil, t.newOffsetError(cursorioutil.UnexpectedRuneError{
-							Rune: uncommitted[len(uncommitted)-1].Rune,
-						}, uncommitted[0:len(uncommitted)-1].AsDecodedRunes(), append(uncommitted[len(uncommitted)-1:], r0).AsDecodedRunes())
-					} else if t.laxListener != nil {
-						// TODO batch so multiple 0s are a single recovery
-						t.laxListener(SyntaxRecovery{
-							Behavior:      LaxNumberTrimLeadingZero,
-							ValueStart:    t.getTextOffset(),
-							SourceOffsets: t.uncommittedTextOffsetRange(uncommitted[0:len(uncommitted)-1].AsDecodedRunes(), uncommitted[len(uncommitted)-1:].AsDecodedRunes()),
-							SourceRunes:   []rune{uncommitted[len(uncommitted)-1].Rune},
-						})
-					}
-
-					hadPrefixedZero = true
-				}
-
 				uncommitted = append(uncommitted, r0)
 			case '.':
 				uncommitted = append(uncommitted, r0)
@@ -538,31 +508,65 @@ func tokenizer_lexValue(t *Tokenizer, r0 cursorio.DecodedRune, err error) (lexFu
 	NUMBER_DONE:
 
 		tn := NumberToken{
-			SourceOffsets: t.commitForTextOffsetRange(uncommitted.AsDecodedRunes()),
+			Content: uncommitted.AsDecodedRunes().String(),
 		}
 
-		if hadPrefixedZero {
-			pos := 0
+		{
+			// easier to handle leading zeroes once we have the full number
+			// * allows grouping syntax recovery hook for multiple zeros
+			// * avoids scan logic for allowing zeros with exponents/decimals
 
-			for _, r := range uncommitted {
-				switch r.Rune {
-				case '0':
-					pos++
-				case 'e', 'E', '.':
-					pos--
+			startPos := 0
 
-					goto NUMBER_TRIM_DONE
-				default:
-					goto NUMBER_TRIM_DONE
-				}
+			if uncommitted[0].Rune == '-' {
+				startPos = 1
 			}
 
-		NUMBER_TRIM_DONE:
+			if uncommitted[startPos].Rune == '0' && len(uncommitted) > startPos+1 {
+				untilPos := len(uncommitted) - 1
 
-			tn.Content = uncommitted[pos:].String()
-		} else {
-			tn.Content = uncommitted.AsDecodedRunes().String()
+				for i := startPos + 1; i < len(uncommitted); i++ {
+					switch uncommitted[i].Rune {
+					case '0':
+						continue
+					case 'e', 'E', '.':
+						if i == startPos+1 {
+							// allowed
+							goto NUMBER_LEADING_ZERO_DONE
+						} else {
+							i -= 1 // offset to retain one zero
+						}
+					}
+
+					untilPos = i
+
+					goto NUMBER_LEADING_ZERO_VALIDATE
+				}
+
+			NUMBER_LEADING_ZERO_VALIDATE:
+
+				if untilPos-startPos > 0 {
+					if t.laxBehaviors&LaxNumberTrimLeadingZero == 0 {
+						return nil, t.newOffsetError(cursorioutil.UnexpectedRuneError{
+							Rune: uncommitted[startPos].Rune,
+						}, uncommitted[0:startPos].AsDecodedRunes(), uncommitted[startPos:].AsDecodedRunes())
+					} else if t.laxListener != nil {
+						t.laxListener(SyntaxRecovery{
+							Behavior:      LaxNumberTrimLeadingZero,
+							SourceOffsets: t.uncommittedTextOffsetRange(uncommitted[0:startPos].AsDecodedRunes(), uncommitted[startPos:untilPos].AsDecodedRunes()),
+							SourceRunes:   uncommitted[startPos:untilPos].AsDecodedRunes().Runes,
+							ValueStart:    t.getTextOffset(),
+						})
+					}
+
+					tn.Content = append(uncommitted[0:startPos], uncommitted[untilPos:]...).String()
+				}
+			}
 		}
+
+	NUMBER_LEADING_ZERO_DONE:
+
+		tn.SourceOffsets = t.commitForTextOffsetRange(uncommitted.AsDecodedRunes())
 
 		t.emit(tn)
 

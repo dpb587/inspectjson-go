@@ -313,6 +313,20 @@ func TestTokenizer_SyntaxRecovery_LaxNumberTrimLeadingZero(t *testing.T) {
 			},
 		},
 		testCaseLaxBehavior{
+			Name:         "WrappedOne",
+			Input:        `[012]`,
+			LaxSanitized: `[12]`,
+			LaxSyntaxRecovery: SyntaxRecovery{
+				Behavior: LaxNumberTrimLeadingZero,
+				SourceOffsets: &cursorio.TextOffsetRange{
+					From:  cursorio.TextOffset{Byte: 1, LineColumn: cursorio.TextLineColumn{0, 1}},
+					Until: cursorio.TextOffset{Byte: 2, LineColumn: cursorio.TextLineColumn{0, 2}},
+				},
+				SourceRunes: []rune("0"),
+				ValueStart:  &cursorio.TextOffset{Byte: 1, LineColumn: cursorio.TextLineColumn{0, 1}},
+			},
+		},
+		testCaseLaxBehavior{
 			Name:         "NegativeOne",
 			Input:        `-01`,
 			LaxSanitized: `-1`,
@@ -321,6 +335,76 @@ func TestTokenizer_SyntaxRecovery_LaxNumberTrimLeadingZero(t *testing.T) {
 				SourceOffsets: &cursorio.TextOffsetRange{
 					From:  cursorio.TextOffset{Byte: 1, LineColumn: cursorio.TextLineColumn{0, 1}},
 					Until: cursorio.TextOffset{Byte: 2, LineColumn: cursorio.TextLineColumn{0, 2}},
+				},
+				SourceRunes: []rune("0"),
+				ValueStart:  &cursorio.TextOffset{Byte: 0, LineColumn: cursorio.TextLineColumn{0, 0}},
+			},
+		},
+		testCaseLaxBehavior{
+			Name:         "MultipleLeading",
+			Input:        `0001`,
+			LaxSanitized: `1`,
+			LaxSyntaxRecovery: SyntaxRecovery{
+				Behavior: LaxNumberTrimLeadingZero,
+				SourceOffsets: &cursorio.TextOffsetRange{
+					From:  cursorio.TextOffset{Byte: 0, LineColumn: cursorio.TextLineColumn{0, 0}},
+					Until: cursorio.TextOffset{Byte: 3, LineColumn: cursorio.TextLineColumn{0, 3}},
+				},
+				SourceRunes: []rune("000"),
+				ValueStart:  &cursorio.TextOffset{Byte: 0, LineColumn: cursorio.TextLineColumn{0, 0}},
+			},
+		},
+		testCaseLaxBehavior{
+			Name:         "CollapsedZero",
+			Input:        `0000`,
+			LaxSanitized: `0`,
+			LaxSyntaxRecovery: SyntaxRecovery{
+				Behavior: LaxNumberTrimLeadingZero,
+				SourceOffsets: &cursorio.TextOffsetRange{
+					From:  cursorio.TextOffset{Byte: 0, LineColumn: cursorio.TextLineColumn{0, 0}},
+					Until: cursorio.TextOffset{Byte: 3, LineColumn: cursorio.TextLineColumn{0, 3}},
+				},
+				SourceRunes: []rune("000"),
+				ValueStart:  &cursorio.TextOffset{Byte: 0, LineColumn: cursorio.TextLineColumn{0, 0}},
+			},
+		},
+		testCaseLaxBehavior{
+			Name:         "CollapsedNegativeZero",
+			Input:        `-0000`,
+			LaxSanitized: `-0`,
+			LaxSyntaxRecovery: SyntaxRecovery{
+				Behavior: LaxNumberTrimLeadingZero,
+				SourceOffsets: &cursorio.TextOffsetRange{
+					From:  cursorio.TextOffset{Byte: 1, LineColumn: cursorio.TextLineColumn{0, 1}},
+					Until: cursorio.TextOffset{Byte: 4, LineColumn: cursorio.TextLineColumn{0, 4}},
+				},
+				SourceRunes: []rune("000"),
+				ValueStart:  &cursorio.TextOffset{Byte: 0, LineColumn: cursorio.TextLineColumn{0, 0}},
+			},
+		},
+		testCaseLaxBehavior{
+			Name:         "BugLeadingTrailing",
+			Input:        `010`,
+			LaxSanitized: `10`,
+			LaxSyntaxRecovery: SyntaxRecovery{
+				Behavior: LaxNumberTrimLeadingZero,
+				SourceOffsets: &cursorio.TextOffsetRange{
+					From:  cursorio.TextOffset{Byte: 0, LineColumn: cursorio.TextLineColumn{0, 0}},
+					Until: cursorio.TextOffset{Byte: 1, LineColumn: cursorio.TextLineColumn{0, 1}},
+				},
+				SourceRunes: []rune("0"),
+				ValueStart:  &cursorio.TextOffset{Byte: 0, LineColumn: cursorio.TextLineColumn{0, 0}},
+			},
+		},
+		testCaseLaxBehavior{
+			Name:         "BugLeadingExponent",
+			Input:        `00E1`,
+			LaxSanitized: `0E1`,
+			LaxSyntaxRecovery: SyntaxRecovery{
+				Behavior: LaxNumberTrimLeadingZero,
+				SourceOffsets: &cursorio.TextOffsetRange{
+					From:  cursorio.TextOffset{Byte: 0, LineColumn: cursorio.TextLineColumn{0, 0}},
+					Until: cursorio.TextOffset{Byte: 1, LineColumn: cursorio.TextLineColumn{0, 1}},
 				},
 				SourceRunes: []rune("0"),
 				ValueStart:  &cursorio.TextOffset{Byte: 0, LineColumn: cursorio.TextLineColumn{0, 0}},
@@ -549,33 +633,4 @@ func TestTokenizer_SyntaxRecovery_WarnStringUnicodeReplacementChar(t *testing.T)
 			},
 		},
 	)
-}
-
-func TestLaxNumberEdgeCases(t *testing.T) {
-	for _, tc := range []struct {
-		input    string
-		expected string
-	}{
-		{
-			input:    "00.030",
-			expected: "0.030",
-		},
-		{
-			input:    "00E1",
-			expected: "0E1",
-		},
-		{
-			input:    "03030.030",
-			expected: "3030.030",
-		},
-	} {
-		t.Run(tc.input, func(t *testing.T) {
-			sanitizedBytes, err := io.ReadAll(NewTokenizerReader(NewTokenizer(strings.NewReader(tc.input), TokenizerConfig{}.SetLax(true))))
-			if err != nil {
-				t.Fatalf("unexpected error: %s", err)
-			} else if _a, _e := string(sanitizedBytes), tc.expected; _a != _e {
-				t.Fatalf("expected %q, got %q", _e, _a)
-			}
-		})
-	}
 }
