@@ -542,25 +542,24 @@ func tokenizer_lexValue(t *Tokenizer, r0 cursorio.DecodedRune, err error) (lexFu
 		}
 
 		if hadPrefixedZero {
-			var decoded []rune
+			pos := 0
 
-			for rIdx, r := range uncommitted {
+			for _, r := range uncommitted {
 				switch r.Rune {
-				case '-':
-					// ok
 				case '0':
-					switch uncommitted[rIdx+1].Rune {
-					case '.', 'e', 'E':
-						// allow
-					default:
-						continue
-					}
-				}
+					pos++
+				case 'e', 'E', '.':
+					pos--
 
-				decoded = append(decoded, r.Rune)
+					goto NUMBER_TRIM_DONE
+				default:
+					goto NUMBER_TRIM_DONE
+				}
 			}
 
-			tn.Content = string(decoded)
+		NUMBER_TRIM_DONE:
+
+			tn.Content = uncommitted[pos:].String()
 		} else {
 			tn.Content = uncommitted.AsDecodedRunes().String()
 		}

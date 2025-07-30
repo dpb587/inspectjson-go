@@ -550,3 +550,32 @@ func TestTokenizer_SyntaxRecovery_WarnStringUnicodeReplacementChar(t *testing.T)
 		},
 	)
 }
+
+func TestLaxNumberEdgeCases(t *testing.T) {
+	for _, tc := range []struct {
+		input    string
+		expected string
+	}{
+		{
+			input:    "00.030",
+			expected: "0.030",
+		},
+		{
+			input:    "00E1",
+			expected: "0E1",
+		},
+		{
+			input:    "03030.030",
+			expected: "3030.030",
+		},
+	} {
+		t.Run(tc.input, func(t *testing.T) {
+			sanitizedBytes, err := io.ReadAll(NewTokenizerReader(NewTokenizer(strings.NewReader(tc.input), TokenizerConfig{}.SetLax(true))))
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			} else if _a, _e := string(sanitizedBytes), tc.expected; _a != _e {
+				t.Fatalf("expected %q, got %q", _e, _a)
+			}
+		})
+	}
+}
